@@ -1,0 +1,329 @@
+// CREATED BY ELECTROALL*********************
+
+//INPUTS
+const int AA = 2; //Automatic
+const int MM = 3;
+const int ACAC = 4;
+const int RR = 5;
+
+// ac current sensor
+const int AC_SS = 10;
+
+//OUTPUTS
+// indicators leds
+const int led1 = 12;
+const int led2 = 11;
+
+//charge battery
+const int bat_charg = 13;
+
+//relays
+const int K1 = 17;
+const int K2 = 16;
+
+// others relays
+const int rly3 = 15;
+const int rly4 = 14;
+
+//MEMORIES
+// STAGE/ETAPA
+boolean e0 = false;
+boolean e1 = false;
+boolean e2 = false;
+boolean e3 = false;
+boolean e4 = false;
+boolean e5 = false;
+boolean e6 = false;
+boolean e7 = false;
+boolean e8 = false;
+//bat_charge
+boolean e00 = false;
+boolean e9 = false;
+
+//TRANSITION
+boolean t01 = false;
+boolean t12 = false;
+boolean t23 = false;
+boolean t20 = false;
+
+boolean t03 = false;
+boolean t34 = false;
+boolean t41 = false;
+boolean t40 = false;
+
+boolean t05 = false;
+boolean t56 = false;
+boolean t67 = false;
+boolean t60 = false;
+
+
+boolean t07 = false;
+boolean t78 = false;
+boolean t85 = false;
+boolean t80 = false;
+
+//bat_charge
+boolean t09;
+boolean t90;
+
+void setup() {
+  //INPUTS
+  Serial.begin(9600);
+  pinMode(AA, INPUT);
+  pinMode(MM, INPUT);
+  pinMode(ACAC, INPUT);
+  pinMode(RR, INPUT);
+
+
+  //ac current sensor
+  pinMode(AC_SS, INPUT);
+
+  //OUTPUS
+  //indicator leds
+  pinMode(led1, OUTPUT);
+  pinMode(led2, OUTPUT);
+
+  //charge battery
+  pinMode(bat_charg, OUTPUT);
+
+  //relays outputs
+  pinMode(K1, OUTPUT);
+  pinMode(K2, OUTPUT);
+  pinMode(rly3, OUTPUT);
+  pinMode(rly4, OUTPUT);
+  digitalWrite(rly3, 0);
+  digitalWrite(rly4, 0);
+
+
+
+}
+
+void loop() {
+  int A = digitalRead(AA);
+  int M = digitalRead(MM);
+  int AC = digitalRead(ACAC);
+  int R = digitalRead(RR);
+  int AC_S = digitalRead(AC_SS);
+
+
+  //CHARGING BATTERY PROCESS*********************************************
+  int bat_sensor = analogRead(A6);
+  int bat_sen = map(bat_sensor, 0, 1023, 0, 13);
+  Serial.println(bat_sen);
+  delay(500);
+  // 22 IS 24V- REAL VOLTAGE
+  if (!e9 == true)e00 = true;
+  if (e00 == true && bat_sen <= 9) {
+    t09 = true;
+    t90 = false;
+  }
+  if (t09 == true && bat_sen >= 11) {
+    t90 = true;
+    t09 = false;
+  }
+
+  if (e00 && t09 == true) {
+    e9 = true;
+    e00 = false;
+  }
+  if (e9 && t90 == true) {
+    e00 = true;
+    e9 = false;
+  }
+  if (e00)digitalWrite(bat_charg, 0);
+  if (e9)digitalWrite(bat_charg, 1);
+  //FINAL CHARGING BATTERY*********************************************
+
+
+  //MAIN PROCESS>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+  //INICIALIZACION***************************
+  if ((!e1 && !e2 && !e3 && !e4 && !e5 && !e6 && !e7 && !e8) == true) {
+    e0 = true;
+  }
+
+  //TRANSITION*********************************
+  //AUTO ==>no hay energia en la acometida 220V / no energy 220 in
+  if (e0 && A && !AC_S == true) {
+    t01 = true;
+    t20 = false;
+    t40 = false;
+  }
+  if (e1 && A && !AC_S == true) {
+    delay(5000);
+    t12 = true;
+    t01 = false;
+  }
+  if (e2 && A && AC_S == true) {
+    t23 = true;
+    t12 = false;
+    t41 = false;
+  }
+  if (e2 && M == true) {
+    t20 = true;
+    t12 = false;
+  }
+
+  // AUTO ==>hay energia en la acometida 220V // there is energy 220 in
+  if (e0 && A && AC_S == true) {
+    t03 = true;
+    t40 = false;
+    t20 = false;
+  }
+  if (e3 && A && AC_S == true) {
+    delay(5000);
+    t34 = true;
+    t03 = false;
+  }
+  if (e4 && A && !AC_S == true) {
+    t41 = true;
+    t34 = false;
+    t23 = false;
+  }
+  if (e4 && M == true) {
+    t40 = true;
+    t34 = false;
+  }
+
+  //MANUAL ===> energ�a acometida // energy 220vac
+  if (e0 && M && AC == true) {
+    t05 = true;
+    t60 = false;
+    t80 = false;
+
+  }
+  if (e5 && M && AC == true) {
+    delay(5000);
+    t56 = true;
+    t05 = false;
+  }
+  if (e6 && M && R == true) {
+    t67 = true;
+    t56 = false;
+    t85 = false;
+  }
+  if (e6 && A == true) {
+    t60 = true;
+    t56 = false;
+  }
+
+  //MANUAL ===>  respaldo( grupo electr�geno, bater�as)// back(generator set, batteries)
+  if (e0 && M && R == true) {
+    t07 = true;
+    t80 = false;
+    t60 = false;
+
+  }
+  if (e7 && M && R == true) {
+    delay(5000);
+    t78 = true;
+    t07 = false;
+  }
+  if (e8 && M && AC == true) {
+    t85 = true;
+    t78 = false;
+    t67 = false;
+  }
+  if (e8 && A == true) {
+    t80 = true;
+    t78 = false;
+  }
+
+  //ETAPA**************************************
+  //AUTO ==>no hay energia en la acometida 220V / no energy 220 in
+  if (e0 && t01 == true) {
+    e1 = true;
+    e0 = false;
+  }
+  if (e1 && t12 == true) {
+    e2 = true;
+    e1 = false;
+  }
+  if (e2 && t23 == true) {
+    e3 = true;
+    e2 = false;
+  }
+  if (e2 && t20 == true) {
+    e0 = true;
+    e2 = false;
+  }
+
+  //AUTO ==>hay energia en la acometida 220V // there is energy 220 in
+  if (e0 && t03 == true) {
+    e3 = true;
+    e0 = false;
+
+  }
+  if (e3 && t34 == true) {
+    e4 = true;
+    e3 = false;
+  }
+  if (e4 && t41 == true) {
+    e1 = true;
+    e4 = false;
+  }
+  if (e4 && t40 == true) {
+    e0 = true;
+    e4 = false;
+  }
+
+  //MANUAL ===> energ�a acometida // energy 220vac
+  if (e0 && t05 == true) {
+    e5 = true;
+    e0 = false;
+  }
+  if (e5 && t56 == true) {
+    e6 = true;
+    e5 = false;
+  }
+  if (e6 && t67 == true) {
+    e7 = true;
+    e6 = false;
+  }
+  if (e6 && t60 == true) {
+    e0 = true;
+    e6 = false;
+  }
+
+  //MANUAL ===>  respaldo( grupo electr�geno, bater�as)// back(generator set, batteries)
+  if (e0 && t07 == true) {
+    e7 = true;
+    e0 = false;
+  }
+  if (e7 && t78 == true) {
+    e8 = true;
+    e7 = false;
+  }
+  if (e8 && t85 == true) {
+    e5 = true;
+    e8 = false;
+  }
+  if (e8 && t80 == true) {
+    e0 = true;
+    e8 = false;
+  }
+
+
+  //ACTUADORES*********************************
+
+  if (e0 || e1 || e3 || e5 || e7 == true) {
+    digitalWrite(K1, LOW);
+    digitalWrite(K2, LOW);
+    digitalWrite(led1, LOW);
+    digitalWrite(led2, LOW);
+  }
+
+  if (e4 || e6 == true) {
+    digitalWrite(K1, HIGH);
+    digitalWrite(K2, LOW);
+    digitalWrite(led1, HIGH);
+    digitalWrite(led2, LOW);
+  }
+  //
+  if (e2 || e8 == true) {
+    digitalWrite(K1, LOW);
+    digitalWrite(K2, HIGH);
+    digitalWrite(led1, LOW);
+    digitalWrite(led2, HIGH);
+  }
+}
